@@ -186,7 +186,9 @@ def load_inference_source(source=None, batch=1, vid_stride=1, buffer=False):
     """
     source, stream, screenshot, from_img, in_memory, tensor = check_source(source)
     source_type = source.source_type if in_memory else SourceTypes(stream, screenshot, from_img, tensor)
-
+    print(source, " ----------------------------------!!!!!!!!!!!!")
+    print(source[0], "=========")
+    print(*source, '!!"!!!!!!!!!!!!!!!!')
     # Dataloader
     if tensor:
         dataset = LoadTensor(source)
@@ -197,7 +199,8 @@ def load_inference_source(source=None, batch=1, vid_stride=1, buffer=False):
     elif screenshot:
         dataset = LoadScreenshots(source)
     elif from_img:
-        dataset = LoadPilAndNumpy(source)
+        #dataset = LoadPilAndNumpy(source) 변경 전
+        dataset = LoadPilAndNumpy(source[0], source[1], source[2])
     else:
         dataset = LoadImagesAndVideos(source, batch=batch, vid_stride=vid_stride)
 

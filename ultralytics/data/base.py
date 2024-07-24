@@ -70,7 +70,7 @@ class BaseDataset(Dataset):
         self.single_cls = single_cls
         self.prefix = prefix
         self.fraction = fraction
-        self.im_files = self.get_img_files(self.img_path)
+        self.im_files,self.im_files2,self.im_files3 = self.get_img_files(self.img_path)
         self.labels = self.get_labels()
         self.update_labels(include_class=classes)  # single_cls and include_class
         self.ni = len(self.labels)  # number of images
@@ -88,6 +88,8 @@ class BaseDataset(Dataset):
 
         # Cache images (options are cache = True, False, None, "ram", "disk")
         self.ims, self.im_hw0, self.im_hw = [None] * self.ni, [None] * self.ni, [None] * self.ni
+        self.ims2, self.im_hw02, self.im_hw2 = [None] * self.ni, [None] * self.ni, [None] * self.ni
+        self.ims3, self.im_hw03, self.im_hw3 = [None] * self.ni, [None] * self.ni, [None] * self.ni
         self.npy_files = [Path(f).with_suffix(".npy") for f in self.im_files]
         self.cache = cache.lower() if isinstance(cache, str) else "ram" if cache is True else None
         if (self.cache == "ram" and self.check_cache_ram()) or self.cache == "disk":
@@ -100,10 +102,14 @@ class BaseDataset(Dataset):
         """Read image files."""
         try:
             f = []  # image files
+            f2 = []  # image files
+            f3 = []  # image files
             for p in img_path if isinstance(img_path, list) else [img_path]:
                 p = Path(p)  # os-agnostic
                 if p.is_dir():  # dir
-                    f += glob.glob(str(p / "**" / "*.*"), recursive=True)
+                    f += glob.glob(str(p / "RGB" / "*.*"), recursive=True)
+                    f2 += glob.glob(str(p / "D" / "*.*"), recursive=True)
+                    f3 += glob.glob(str(p / "Thermo" / "*.*"), recursive=True)
                     # F = list(p.rglob('*.*'))  # pathlib
                 elif p.is_file():  # file
                     with open(p) as t:
@@ -114,13 +120,15 @@ class BaseDataset(Dataset):
                 else:
                     raise FileNotFoundError(f"{self.prefix}{p} does not exist")
             im_files = sorted(x.replace("/", os.sep) for x in f if x.split(".")[-1].lower() in IMG_FORMATS)
+            im_files2 = sorted(x.replace("/", os.sep) for x in f2 if x.split(".")[-1].lower() in IMG_FORMATS)
+            im_files3 = sorted(x.replace("/", os.sep) for x in f3 if x.split(".")[-1].lower() in IMG_FORMATS)
             # self.img_files = sorted([x for x in f if x.suffix[1:].lower() in IMG_FORMATS])  # pathlib
             assert im_files, f"{self.prefix}No images found in {img_path}. {FORMATS_HELP_MSG}"
         except Exception as e:
             raise FileNotFoundError(f"{self.prefix}Error loading data from {img_path}\n{HELP_URL}") from e
         if self.fraction < 1:
             im_files = im_files[: round(len(im_files) * self.fraction)]  # retain a fraction of the dataset
-        return im_files
+        return im_files, im_files2, im_files3
 
     def update_labels(self, include_class: Optional[list]):
         """Update labels to include only these classes (optional)."""
@@ -144,16 +152,22 @@ class BaseDataset(Dataset):
     def load_image(self, i, rect_mode=True):
         """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
         im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
+        im2, f2 = self.ims[i], self.im_files2[i]
+        im3, f3 = self.ims[i], self.im_files3[i]
         if im is None:  # not cached in RAM
             if fn.exists():  # load npy
                 try:
+                    #이거 필요없음
                     im = np.load(fn)
                 except Exception as e:
                     LOGGER.warning(f"{self.prefix}WARNING ⚠️ Removing corrupt *.npy image file {fn} due to: {e}")
                     Path(fn).unlink(missing_ok=True)
                     im = cv2.imread(f)  # BGR
             else:  # read image
+                # 이거 실행됨
                 im = cv2.imread(f)  # BGR
+                im2 = cv2.imread(f2)  # BGR
+                im3 = cv2.imread(f3)  # BGR
             if im is None:
                 raise FileNotFoundError(f"Image Not Found {f}")
 
@@ -163,21 +177,29 @@ class BaseDataset(Dataset):
                 if r != 1:  # if sizes are not equal
                     w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
                     im = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
+                    im2 = cv2.resize(im2, (w, h), interpolation=cv2.INTER_LINEAR)
+                    im3 = cv2.resize(im3, (w, h), interpolation=cv2.INTER_LINEAR)
             elif not (h0 == w0 == self.imgsz):  # resize by stretching image to square imgsz
                 im = cv2.resize(im, (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR)
+                im2 = cv2.resize(im2, (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR)
+                im3 = cv2.resize(im3, (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR)
 
             # Add to buffer if training with augmentations
             if self.augment:
+                # 이거도 안씀
                 self.ims[i], self.im_hw0[i], self.im_hw[i] = im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
+                self.ims2[i], self.im_hw02[i], self.im_hw2[i] = im2, (h0, w0), im2.shape[:2]  # im, hw_original, hw_resized
+                self.ims3[i], self.im_hw03[i], self.im_hw3[i] = im3, (h0, w0), im3.shape[:2]  # im, hw_original, hw_resized
                 self.buffer.append(i)
                 if 1 < len(self.buffer) >= self.max_buffer_length:  # prevent empty buffer
                     j = self.buffer.pop(0)
                     if self.cache != "ram":
                         self.ims[j], self.im_hw0[j], self.im_hw[j] = None, None, None
+                        self.ims2[j], self.im_hw02[j], self.im_hw2[j] = None, None, None
+                        self.ims3[j], self.im_hw03[j], self.im_hw3[j] = None, None, None
+            return im, (h0, w0), im.shape[:2], im2, im3
 
-            return im, (h0, w0), im.shape[:2]
-
-        return self.ims[i], self.im_hw0[i], self.im_hw[i]
+        return self.ims[i], self.im_hw0[i], self.im_hw[i], self.ims2[i], self.ims3[i]
 
     def cache_images(self):
         """Cache images to memory or disk."""
@@ -230,6 +252,8 @@ class BaseDataset(Dataset):
         ar = s[:, 0] / s[:, 1]  # aspect ratio
         irect = ar.argsort()
         self.im_files = [self.im_files[i] for i in irect]
+        self.im_files2 = [self.im_files2[i] for i in irect]
+        self.im_files3 = [self.im_files3[i] for i in irect]
         self.labels = [self.labels[i] for i in irect]
         ar = ar[irect]
 
@@ -245,23 +269,32 @@ class BaseDataset(Dataset):
 
         self.batch_shapes = np.ceil(np.array(shapes) * self.imgsz / self.stride + self.pad).astype(int) * self.stride
         self.batch = bi  # batch index of image
-
     def __getitem__(self, index):
         """Returns transformed label information for given index."""
-        return self.transforms(self.get_image_and_label(index))
+        img1,img2,img3= self.get_image_and_label(index)
+        tmp = deepcopy(img1)
+        tmp['img'] = img2['img']
+        tmp2 = deepcopy(img1)
+        tmp2['img'] = img3['img']
+        img1, tmp , tmp2=self.transforms(img1), self.transforms(tmp), self.transforms(tmp2)
+        img1['img2'] = tmp['img']
+        img1['img3'] = tmp2['img']
+        return img1
 
     def get_image_and_label(self, index):
         """Get and return label information from the dataset."""
         label = deepcopy(self.labels[index])  # requires deepcopy() https://github.com/ultralytics/ultralytics/pull/1948
         label.pop("shape", None)  # shape is for rect, remove it
-        label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
+        d_img = {}
+        t_img = {}
+        label["img"], label["ori_shape"], label["resized_shape"], d_img['img'], t_img['img'] = self.load_image(index)
         label["ratio_pad"] = (
             label["resized_shape"][0] / label["ori_shape"][0],
             label["resized_shape"][1] / label["ori_shape"][1],
         )  # for evaluation
         if self.rect:
             label["rect_shape"] = self.batch_shapes[self.batch[index]]
-        return self.update_labels_info(label)
+        return self.update_labels_info(label), d_img, t_img
 
     def __len__(self):
         """Returns the length of the labels list for the dataset."""

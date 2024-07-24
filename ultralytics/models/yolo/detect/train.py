@@ -57,6 +57,8 @@ class DetectionTrainer(BaseTrainer):
     def preprocess_batch(self, batch):
         """Preprocesses a batch of images by scaling and converting to float."""
         batch["img"] = batch["img"].to(self.device, non_blocking=True).float() / 255
+        batch["img2"] = batch["img2"].to(self.device, non_blocking=True).float() / 255
+        batch["img3"] = batch["img3"].to(self.device, non_blocking=True).float() / 255
         if self.args.multi_scale:
             imgs = batch["img"]
             sz = (
@@ -129,6 +131,24 @@ class DetectionTrainer(BaseTrainer):
             bboxes=batch["bboxes"],
             paths=batch["im_file"],
             fname=self.save_dir / f"train_batch{ni}.jpg",
+            on_plot=self.on_plot,
+        )
+        plot_images(
+            images=batch["img2"],
+            batch_idx=batch["batch_idx"],
+            cls=batch["cls"].squeeze(-1),
+            bboxes=batch["bboxes"],
+            paths=batch["im_file"],
+            fname=self.save_dir / f"train_batch_2_{ni}.jpg",
+            on_plot=self.on_plot,
+        )
+        plot_images(
+            images=batch["img3"],
+            batch_idx=batch["batch_idx"],
+            cls=batch["cls"].squeeze(-1),
+            bboxes=batch["bboxes"],
+            paths=batch["im_file"],
+            fname=self.save_dir / f"train_batch_3_{ni}.jpg",
             on_plot=self.on_plot,
         )
 

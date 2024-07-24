@@ -152,7 +152,6 @@ class BaseValidator:
                 self.args.rect = False
             self.stride = model.stride  # used in get_dataloader() for padding
             self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split), self.args.batch)
-
             model.eval()
             model.warmup(imgsz=(1 if pt else self.args.batch, 3, imgsz, imgsz))  # warmup
 
@@ -175,7 +174,7 @@ class BaseValidator:
 
             # Inference
             with dt[1]:
-                preds = model(batch["img"], augment=augment)
+                preds = model(batch["img"],batch["img2"], batch['img3'], augment=augment)
 
             # Loss
             with dt[2]:

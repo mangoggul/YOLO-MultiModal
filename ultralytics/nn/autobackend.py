@@ -432,7 +432,7 @@ class AutoBackend(nn.Module):
 
         self.__dict__.update(locals())  # assign all variables to self
 
-    def forward(self, im, augment=False, visualize=False, embed=None):
+    def forward(self, im, im2 ,im3,augment=False, visualize=False, embed=None):
         """
         Runs inference on the YOLOv8 MultiBackend model.
 
@@ -448,26 +448,34 @@ class AutoBackend(nn.Module):
         b, ch, h, w = im.shape  # batch, channel, height, width
         if self.fp16 and im.dtype != torch.float16:
             im = im.half()  # to FP16
+            im2 = im2.half()  # to FP16
+            im3 = im3.half()  # to FP16
         if self.nhwc:
             im = im.permute(0, 2, 3, 1)  # torch BCHW to numpy BHWC shape(1,320,192,3)
+            im2 = im2.permute(0, 2, 3, 1)  # torch BCHW to numpy BHWC shape(1,320,192,3)
+            im3 = im3.permute(0, 2, 3, 1)  # torch BCHW to numpy BHWC shape(1,320,192,3)
 
         # PyTorch
         if self.pt or self.nn_module:
-            y = self.model(im, augment=augment, visualize=visualize, embed=embed)
+            y = self.model(im, im2,im3,augment=augment, visualize=visualize, embed=embed)
 
         # TorchScript
         elif self.jit:
-            y = self.model(im)
+            y = self.model(im, im2,im3)
 
         # ONNX OpenCV DNN
         elif self.dnn:
             im = im.cpu().numpy()  # torch to numpy
-            self.net.setInput(im)
+            im2 = im2.cpu().numpy()  # torch to numpy
+            im3 = im3.cpu().numpy()  # torch to numpy
+            self.net.setInput(im,im2,im3)
             y = self.net.forward()
 
         # ONNX Runtime
         elif self.onnx:
             im = im.cpu().numpy()  # torch to numpy
+            im2 = im2.cpu().numpy()  # torch to numpy
+            im3 = im3.cpu().numpy()  # torch to numpy
             y = self.session.run(self.output_names, {self.session.get_inputs()[0].name: im})
 
         # OpenVINO
@@ -628,8 +636,10 @@ class AutoBackend(nn.Module):
         warmup_types = self.pt, self.jit, self.onnx, self.engine, self.saved_model, self.pb, self.triton, self.nn_module
         if any(warmup_types) and (self.device.type != "cpu" or self.triton):
             im = torch.empty(*imgsz, dtype=torch.half if self.fp16 else torch.float, device=self.device)  # input
+            im2 = torch.empty(*imgsz, dtype=torch.half if self.fp16 else torch.float, device=self.device)  # input
+            im3 = torch.empty(*imgsz, dtype=torch.half if self.fp16 else torch.float, device=self.device)  # input
             for _ in range(2 if self.jit else 1):
-                self.forward(im)  # warmup
+                self.forward(im,im2,im3)  # warmup
 
     @staticmethod
     def _model_type(p="path/to/model.pt"):

@@ -21,6 +21,10 @@ __all__ = (
     "CBAM",
     "Concat",
     "RepConv",
+    "Triple_Conv",
+    "Conv_Depth",
+    "Conv_RGB"
+    "Conv_Thermo"
 )
 
 
@@ -52,6 +56,101 @@ class Conv(nn.Module):
     def forward_fuse(self, x):
         """Perform transposed convolution of 2D data."""
         return self.act(self.conv(x))
+        
+class Conv_Depth(nn.Module):
+    """Standard convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)."""
+
+    default_act = nn.SiLU()  # default activation
+
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+        """Initialize Conv layer with given arguments including activation."""
+        super().__init__()
+        self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+    def forward(self, x):
+        """Apply convolution, batch normalization and activation to input tensor."""
+        return self.act(self.bn(self.conv(x[1])))
+
+    def forward_fuse(self, x):
+        """Perform transposed convolution of 2D data."""
+        return self.act(self.conv(x))
+    
+class Conv_RGB(nn.Module):
+    """Standard convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)."""
+
+    default_act = nn.SiLU()  # default activation
+
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+        """Initialize Conv layer with given arguments including activation."""
+        super().__init__()
+        self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+    def forward(self, x):
+        """Apply convolution, batch normalization and activation to input tensor."""
+        return self.act(self.bn(self.conv(x[0])))
+
+    def forward_fuse(self, x):
+        """Perform transposed convolution of 2D data."""
+        return self.act(self.conv(x))
+    
+class Conv_Thermo(nn.Module):
+    """Standard convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)."""
+
+    default_act = nn.SiLU()  # default activation
+
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+        """Initialize Conv layer with given arguments including activation."""
+        super().__init__()
+        self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+    def forward(self, x):
+        """Apply convolution, batch normalization and activation to input tensor."""
+        return self.act(self.bn(self.conv(x[2])))
+
+    def forward_fuse(self, x):
+        """Perform transposed convolution of 2D data."""
+        return self.act(self.conv(x))
+
+
+
+import cv2
+
+class Triple_Conv(nn.Module):
+    """Standard convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)."""
+
+    default_act = nn.SiLU()  # default activation
+
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+        """Initialize Conv layer with given arguments including activation."""
+        super().__init__()
+        self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.conv2 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.conv3 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+        self.bn2 = nn.BatchNorm2d(c2)
+        self.act2 = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+        self.bn3 = nn.BatchNorm2d(c2)
+        self.act3 = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+    def forward(self, x, x_2,x_3):
+        """Apply convolution, batch normalization and activation to input tensor."""
+
+        x1 = self.act(self.bn(self.conv(x)))
+        x2 = self.act2(self.bn2(self.conv2(x_2)))
+        x3 = self.act2(self.bn3(self.conv2(x_3)))
+        return (x1, x2,x3)
+
+    def forward_fuse(self, x):
+        """Perform transposed convolution of 2D data."""
+        return self.act(self.conv(x))
+    
 
 
 class Conv2(Conv):

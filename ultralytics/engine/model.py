@@ -150,7 +150,8 @@ class Model(nn.Module):
 
     def __call__(
         self,
-        source: Union[str, Path, int, list, tuple, np.ndarray, torch.Tensor] = None,
+        #source: Union[str, Path, int, list, tuple, np.ndarray, torch.Tensor] = None, 변경 전
+        *sources: Union[str, Path, int, np.ndarray, torch.Tensor],
         stream: bool = False,
         **kwargs,
     ) -> list:
@@ -171,7 +172,8 @@ class Model(nn.Module):
         Returns:
             (List[ultralytics.engine.results.Results]): A list of prediction results, encapsulated in the Results class.
         """
-        return self.predict(source, stream, **kwargs)
+        print(*sources, '!!!!!!!!+!+!+!+!+')
+        return self.predict(sources, stream, **kwargs)
 
     @staticmethod
     def is_triton_model(model: str) -> bool:
@@ -425,7 +427,7 @@ class Model(nn.Module):
         is_cli = (ARGV[0].endswith("yolo") or ARGV[0].endswith("ultralytics")) and any(
             x in ARGV for x in ("predict", "track", "mode=predict", "mode=track")
         )
-
+        print("나 여깄어!!!")
         custom = {"conf": 0.25, "batch": 1, "save": is_cli, "mode": "predict"}  # method defaults
         args = {**self.overrides, **custom, **kwargs}  # highest priority args on the right
         prompts = args.pop("prompts", None)  # for SAM-type models

@@ -173,12 +173,15 @@ class YOLODataset(BaseDataset):
 
     def build_transforms(self, hyp=None):
         """Builds and appends transforms to the list."""
+        self.augment = False
+        hyp.mosaic=0
         if self.augment:
             hyp.mosaic = hyp.mosaic if self.augment and not self.rect else 0.0
             hyp.mixup = hyp.mixup if self.augment and not self.rect else 0.0
             transforms = v8_transforms(self, self.imgsz, hyp)
         else:
             transforms = Compose([LetterBox(new_shape=(self.imgsz, self.imgsz), scaleup=False)])
+        
         transforms.append(
             Format(
                 bbox_format="xywh",
@@ -236,8 +239,13 @@ class YOLODataset(BaseDataset):
             value = values[i]
             if k == "img":
                 value = torch.stack(value, 0)
+            if k == "img2":
+                value = torch.stack(value, 0)
+            if k == "img3":
+                value = torch.stack(value, 0)
             if k in {"masks", "keypoints", "bboxes", "cls", "segments", "obb"}:
                 value = torch.cat(value, 0)
+            
             new_batch[k] = value
         new_batch["batch_idx"] = list(new_batch["batch_idx"])
         for i in range(len(new_batch["batch_idx"])):

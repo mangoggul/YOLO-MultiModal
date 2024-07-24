@@ -40,22 +40,32 @@ class BaseTransform:
     """
 
     def __init__(self) -> None:
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initializes the BaseTransform object."""
         pass
 
     def apply_image(self, labels):
+        
+        torch.manual_seed(1234)
         """Applies image transformations to labels."""
         pass
 
     def apply_instances(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Applies transformations to object instances in labels."""
         pass
 
     def apply_semantic(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Applies semantic segmentation to an image."""
         pass
 
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Applies all label transformations to an image, instances, and semantic masks."""
         self.apply_image(labels)
         self.apply_instances(labels)
@@ -66,30 +76,42 @@ class Compose:
     """Class for composing multiple image transformations."""
 
     def __init__(self, transforms):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initializes the Compose object with a list of transforms."""
         self.transforms = transforms if isinstance(transforms, list) else [transforms]
 
     def __call__(self, data):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Applies a series of transformations to input data."""
         for t in self.transforms:
             data = t(data)
         return data
 
     def append(self, transform):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Appends a new transform to the existing list of transforms."""
         self.transforms.append(transform)
 
     def insert(self, index, transform):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Inserts a new transform to the existing list of transforms."""
         self.transforms.insert(index, transform)
 
     def __getitem__(self, index: Union[list, int]) -> "Compose":
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Retrieve a specific transform or a set of transforms using indexing."""
         assert isinstance(index, (int, list)), f"The indices should be either list or int type but got {type(index)}"
         index = [index] if isinstance(index, int) else index
         return Compose([self.transforms[i] for i in index])
 
     def __setitem__(self, index: Union[list, int], value: Union[list, int]) -> None:
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Retrieve a specific transform or a set of transforms using indexing."""
         assert isinstance(index, (int, list)), f"The indices should be either list or int type but got {type(index)}"
         if isinstance(index, list):
@@ -103,10 +125,14 @@ class Compose:
             self.transforms[i] = v
 
     def tolist(self):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Converts the list of transforms to a standard Python list."""
         return self.transforms
 
     def __repr__(self):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Returns a string representation of the object."""
         return f"{self.__class__.__name__}({', '.join([f'{t}' for t in self.transforms])})"
 
@@ -120,11 +146,15 @@ class BaseMixTransform:
 
     def __init__(self, dataset, pre_transform=None, p=0.0) -> None:
         """Initializes the BaseMixTransform object with dataset, pre_transform, and probability."""
+        random.seed(1234)
+        torch.manual_seed(1234)
         self.dataset = dataset
         self.pre_transform = pre_transform
         self.p = p
 
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Applies pre-processing transforms and mixup/mosaic transforms to labels data."""
         if random.uniform(0, 1) > self.p:
             return labels
@@ -135,7 +165,12 @@ class BaseMixTransform:
             indexes = [indexes]
 
         # Get images information will be used for Mosaic or MixUp
-        mix_labels = [self.dataset.get_image_and_label(i) for i in indexes]
+        mix_labels=[]
+        for i in indexes:
+            img1, tmp = self.dataset.get_image_and_label(i)
+            img1["img2"] = tmp['img']
+            mix_labels.append(img1)
+        # mix_labels = [self.dataset.get_image_and_label(i) for i in indexes]
 
         if self.pre_transform is not None:
             for i, data in enumerate(mix_labels):
@@ -150,14 +185,20 @@ class BaseMixTransform:
         return labels
 
     def _mix_transform(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Applies MixUp or Mosaic augmentation to the label dictionary."""
         raise NotImplementedError
 
     def get_indexes(self):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Gets a list of shuffled indexes for mosaic augmentation."""
         raise NotImplementedError
 
     def _update_label_text(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Update label text."""
         if "texts" not in labels:
             return labels
@@ -189,6 +230,8 @@ class Mosaic(BaseMixTransform):
     """
 
     def __init__(self, dataset, imgsz=640, p=1.0, n=4):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initializes the object with a dataset, image size, probability, and border."""
         assert 0 <= p <= 1.0, f"The probability should be in range [0, 1], but got {p}."
         assert n in {4, 9}, "grid must be equal to 4 or 9."
@@ -199,6 +242,8 @@ class Mosaic(BaseMixTransform):
         self.n = n
 
     def get_indexes(self, buffer=True):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Return a list of random indexes from the dataset."""
         if buffer:  # select images from buffer
             return random.choices(list(self.dataset.buffer), k=self.n - 1)
@@ -206,6 +251,8 @@ class Mosaic(BaseMixTransform):
             return [random.randint(0, len(self.dataset) - 1) for _ in range(self.n - 1)]
 
     def _mix_transform(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Apply mixup transformation to the input image and labels."""
         assert labels.get("rect_shape", None) is None, "rect and mosaic are mutually exclusive."
         assert len(labels.get("mix_labels", [])), "There are no other images for mosaic augment."
@@ -214,6 +261,8 @@ class Mosaic(BaseMixTransform):
         )  # This code is modified for mosaic3 method.
 
     def _mosaic3(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Create a 1x3 image mosaic."""
         mosaic_labels = []
         s = self.imgsz
@@ -248,6 +297,8 @@ class Mosaic(BaseMixTransform):
         return final_labels
 
     def _mosaic4(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Create a 2x2 image mosaic."""
         mosaic_labels = []
         s = self.imgsz
@@ -284,6 +335,8 @@ class Mosaic(BaseMixTransform):
         return final_labels
 
     def _mosaic9(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Create a 3x3 image mosaic."""
         mosaic_labels = []
         s = self.imgsz
@@ -333,6 +386,8 @@ class Mosaic(BaseMixTransform):
 
     @staticmethod
     def _update_labels(labels, padw, padh):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Update labels."""
         nh, nw = labels["img"].shape[:2]
         labels["instances"].convert_bbox(format="xyxy")
@@ -341,6 +396,8 @@ class Mosaic(BaseMixTransform):
         return labels
 
     def _cat_labels(self, mosaic_labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Return labels with mosaic border instances clipped."""
         if len(mosaic_labels) == 0:
             return {}
@@ -373,12 +430,18 @@ class MixUp(BaseMixTransform):
     def __init__(self, dataset, pre_transform=None, p=0.0) -> None:
         """Initializes MixUp object with dataset, pre_transform, and probability of applying MixUp."""
         super().__init__(dataset=dataset, pre_transform=pre_transform, p=p)
-
+            
+        random.seed(1234)
+        torch.manual_seed(1234)
     def get_indexes(self):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Get a random index from the dataset."""
         return random.randint(0, len(self.dataset) - 1)
 
     def _mix_transform(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Applies MixUp augmentation as per https://arxiv.org/pdf/1710.09412.pdf."""
         r = np.random.beta(32.0, 32.0)  # mixup ratio, alpha=beta=32.0
         labels2 = labels["mix_labels"][0]
@@ -389,6 +452,8 @@ class MixUp(BaseMixTransform):
 
 
 class RandomPerspective:
+    random.seed(1234)
+    torch.manual_seed(1234)
     """
     Implements random perspective and affine transformations on images and corresponding bounding boxes, segments, and
     keypoints. These transformations include rotation, translation, scaling, and shearing. The class also offers the
@@ -417,6 +482,8 @@ class RandomPerspective:
     ):
         """Initializes RandomPerspective object with transformation parameters."""
 
+        random.seed(1234)
+        torch.manual_seed(1234)
         self.degrees = degrees
         self.translate = translate
         self.scale = scale
@@ -426,6 +493,8 @@ class RandomPerspective:
         self.pre_transform = pre_transform
 
     def affine_transform(self, img, border):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Applies a sequence of affine transformations centered around the image center.
 
@@ -479,6 +548,8 @@ class RandomPerspective:
         return img, M, s
 
     def apply_bboxes(self, bboxes, M):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Apply affine to bboxes only.
 
@@ -504,6 +575,8 @@ class RandomPerspective:
         return np.concatenate((x.min(1), y.min(1), x.max(1), y.max(1)), dtype=bboxes.dtype).reshape(4, n).T
 
     def apply_segments(self, segments, M):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Apply affine to segments and generate new bboxes from segments.
 
@@ -531,6 +604,8 @@ class RandomPerspective:
         return bboxes, segments
 
     def apply_keypoints(self, keypoints, M):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Apply affine to keypoints.
 
@@ -554,6 +629,8 @@ class RandomPerspective:
         return np.concatenate([xy, visible], axis=-1).reshape(n, nkpt, 3)
 
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Affine images and targets.
 
@@ -604,6 +681,8 @@ class RandomPerspective:
         return labels
 
     def box_candidates(self, box1, box2, wh_thr=2, ar_thr=100, area_thr=0.1, eps=1e-16):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Compute box candidates based on a set of thresholds. This method compares the characteristics of the boxes
         before and after augmentation to decide whether a box is a candidate for further processing.
@@ -642,11 +721,15 @@ class RandomHSV:
             sgain (float, optional): Maximum variation for saturation. Default is 0.5.
             vgain (float, optional): Maximum variation for value. Default is 0.5.
         """
+        random.seed(1234)
+        torch.manual_seed(1234)
         self.hgain = hgain
         self.sgain = sgain
         self.vgain = vgain
-
+        
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Applies random HSV augmentation to an image within the predefined limits.
 
@@ -669,6 +752,7 @@ class RandomHSV:
 
 
 class RandomFlip:
+    
     """
     Applies a random horizontal or vertical flip to an image with a given probability.
 
@@ -676,6 +760,8 @@ class RandomFlip:
     """
 
     def __init__(self, p=0.5, direction="horizontal", flip_idx=None) -> None:
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Initializes the RandomFlip class with probability and direction.
 
@@ -693,6 +779,8 @@ class RandomFlip:
         self.flip_idx = flip_idx
 
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Applies random flip to an image and updates any instances like bounding boxes or keypoints accordingly.
 
@@ -729,6 +817,8 @@ class LetterBox:
     """Resize image and padding for detection, instance segmentation, pose."""
 
     def __init__(self, new_shape=(640, 640), auto=False, scaleFill=False, scaleup=True, center=True, stride=32):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initialize LetterBox object with specific parameters."""
         self.new_shape = new_shape
         self.auto = auto
@@ -738,6 +828,8 @@ class LetterBox:
         self.center = center  # Put the image in the middle or top-left
 
     def __call__(self, labels=None, image=None):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Return updated labels and image with added border."""
         if labels is None:
             labels = {}
@@ -786,6 +878,8 @@ class LetterBox:
             return img
 
     def _update_labels(self, labels, ratio, padw, padh):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Update labels."""
         labels["instances"].convert_bbox(format="xyxy")
         labels["instances"].denormalize(*labels["img"].shape[:2][::-1])
@@ -801,6 +895,8 @@ class CopyPaste:
     """
 
     def __init__(self, p=0.5) -> None:
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Initializes the CopyPaste class with a given probability.
 
@@ -811,6 +907,8 @@ class CopyPaste:
         self.p = p
 
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Applies the Copy-Paste augmentation to the given image and instances.
 
@@ -870,6 +968,8 @@ class Albumentations:
     """
 
     def __init__(self, p=1.0):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initialize the transform object for YOLO bbox formatted params."""
         self.p = p
         self.transform = None
@@ -949,6 +1049,8 @@ class Albumentations:
             LOGGER.info(f"{prefix}{e}")
 
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Generates object detections and returns a dictionary with detection results."""
         if self.transform is None or random.random() > self.p:
             return labels
@@ -1001,6 +1103,8 @@ class Format:
         batch_idx=True,
         bgr=0.0,
     ):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initializes the Format class with given parameters."""
         self.bbox_format = bbox_format
         self.normalize = normalize
@@ -1013,6 +1117,8 @@ class Format:
         self.bgr = bgr
 
     def __call__(self, labels):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Return formatted image, classes, bounding boxes & keypoints to be used by 'collate_fn'."""
         img = labels.pop("img")
         h, w = img.shape[:2]
@@ -1053,6 +1159,8 @@ class Format:
         return labels
 
     def _format_img(self, img):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Format the image for YOLO from Numpy array to PyTorch tensor."""
         if len(img.shape) < 3:
             img = np.expand_dims(img, -1)
@@ -1062,6 +1170,8 @@ class Format:
         return img
 
     def _format_segments(self, instances, cls, w, h):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Convert polygon points to bitmap."""
         segments = instances.segments
         if self.mask_overlap:
@@ -1095,6 +1205,8 @@ class RandomLoadText:
         padding: bool = False,
         padding_value: str = "",
     ) -> None:
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initializes the RandomLoadText class with given parameters."""
         self.prompt_format = prompt_format
         self.neg_samples = neg_samples
@@ -1103,6 +1215,8 @@ class RandomLoadText:
         self.padding_value = padding_value
 
     def __call__(self, labels: dict) -> dict:
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Return updated classes and texts."""
         assert "texts" in labels, "No texts found in labels."
         class_texts = labels["texts"]
@@ -1151,6 +1265,9 @@ class RandomLoadText:
 
 def v8_transforms(dataset, imgsz, hyp, stretch=False):
     """Convert images to a size suitable for YOLOv8 training."""
+    random.seed(1234)
+    torch.manual_seed(1234)
+    
     pre_transform = Compose(
         [
             Mosaic(dataset, imgsz=imgsz, p=hyp.mosaic),
@@ -1183,7 +1300,7 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             RandomFlip(direction="vertical", p=hyp.flipud),
             RandomFlip(direction="horizontal", p=hyp.fliplr, flip_idx=flip_idx),
         ]
-    )  # transforms
+    )  # transform
 
 
 # Classification augmentations -----------------------------------------------------------------------------------------
@@ -1194,6 +1311,8 @@ def classify_transforms(
     interpolation=Image.BILINEAR,
     crop_fraction: float = DEFAULT_CROP_FRACTION,
 ):
+    random.seed(1234)
+    torch.manual_seed(1234)
     """
     Classification transforms for evaluation/inference. Inspired by timm/data/transforms_factory.py.
 
@@ -1250,6 +1369,8 @@ def classify_augmentations(
     erasing=0.0,
     interpolation=Image.BILINEAR,
 ):
+    random.seed(1234)
+    torch.manual_seed(1234)
     """
     Classification transforms with augmentation for training. Inspired by timm/data/transforms_factory.py.
 
@@ -1343,6 +1464,8 @@ class ClassifyLetterBox:
     """
 
     def __init__(self, size=(640, 640), auto=False, stride=32):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Initializes the ClassifyLetterBox class with a target size, auto-flag, and stride.
 
@@ -1357,6 +1480,8 @@ class ClassifyLetterBox:
         self.stride = stride  # used with auto
 
     def __call__(self, im):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Resizes the image and pads it with a letterbox method.
 
@@ -1387,11 +1512,15 @@ class CenterCrop:
     """
 
     def __init__(self, size=640):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Converts an image from numpy array to PyTorch tensor."""
         super().__init__()
         self.h, self.w = (size, size) if isinstance(size, int) else size
 
     def __call__(self, im):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Resizes and crops the center of the image using a letterbox method.
 
@@ -1412,11 +1541,15 @@ class ToTensor:
     """YOLOv8 ToTensor class for image preprocessing, i.e., T.Compose([LetterBox(size), ToTensor()])."""
 
     def __init__(self, half=False):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """Initialize YOLOv8 ToTensor object with optional half-precision support."""
         super().__init__()
         self.half = half
 
     def __call__(self, im):
+        random.seed(1234)
+        torch.manual_seed(1234)
         """
         Transforms an image from a numpy array to a PyTorch tensor, applying optional half-precision and normalization.
 

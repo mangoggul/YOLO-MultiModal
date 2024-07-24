@@ -404,15 +404,38 @@ class LoadPilAndNumpy:
     Methods:
         _single_check(im): Validate and format a single image to a Numpy array.
     """
-
-    def __init__(self, im0):
+    # def __init__(self, im0):
+    #     """Initialize PIL and Numpy Dataloader."""
+    #     if not isinstance(im0, list):
+    #         im0 = [im0]
+    #     self.paths = [getattr(im, "filename", f"image{i}.jpg") for i, im in enumerate(im0)]
+    #     self.im0 = [self._single_check(im) for im in im0]
+    #     self.mode = "image"
+    #     self.bs = len(self.im0) 변경전
+    def __init__(self, im0, im1, im2):
         """Initialize PIL and Numpy Dataloader."""
+        # Ensure each input is a list
         if not isinstance(im0, list):
             im0 = [im0]
-        self.paths = [getattr(im, "filename", f"image{i}.jpg") for i, im in enumerate(im0)]
+        if not isinstance(im1, list):
+            im1 = [im1]
+        if not isinstance(im2, list):
+            im2 = [im2]
+
+        # Store images separately
         self.im0 = [self._single_check(im) for im in im0]
+        self.im1 = [self._single_check(im) for im in im1]
+        self.im2 = [self._single_check(im) for im in im2]
+
+        # Combine paths for all images
+        self.paths = (
+            [getattr(im, "filename", f"image0_{i}.jpg") for i, im in enumerate(im0)] +
+            [getattr(im, "filename", f"image1_{i}.jpg") for i, im in enumerate(im1)] +
+            [getattr(im, "filename", f"image2_{i}.jpg") for i, im in enumerate(im2)]
+        )
+        
         self.mode = "image"
-        self.bs = len(self.im0)
+        self.bs = len(self.im0)  # Assuming each list (im0, im1, im2) has the same length
 
     @staticmethod
     def _single_check(im):
@@ -430,16 +453,18 @@ class LoadPilAndNumpy:
         return len(self.im0)
 
     def __next__(self):
-        """Returns batch paths, images, processed images, None, ''."""
+        """Returns batch paths, images from im0, im1, im2, and an empty string list."""
         if self.count == 1:  # loop only once as it's batch inference
             raise StopIteration
         self.count += 1
-        return self.paths, self.im0, [""] * self.bs
+        #return self.paths, self.im0, [""] * self.bs 변경 전
+        return self.paths, self.im0, self.im1, self.im2, [""] * self.bs
 
     def __iter__(self):
         """Enables iteration for class LoadPilAndNumpy."""
         self.count = 0
         return self
+
 
 
 class LoadTensor:

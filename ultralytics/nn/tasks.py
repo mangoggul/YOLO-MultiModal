@@ -55,6 +55,10 @@ from ultralytics.nn.modules import (
     Segment,
     WorldDetect,
     v10Detect,
+    Triple_Conv,
+    Conv_Depth,
+    Conv_RGB,
+    Conv_Thermo,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -87,7 +91,7 @@ except ImportError:
 class BaseModel(nn.Module):
     """The BaseModel class serves as a base class for all the models in the Ultralytics YOLO family."""
 
-    def forward(self, x, *args, **kwargs):
+    def forward(self, x, x_2=None, x_3=None,*args, **kwargs):
         """
         Forward pass of the model on a single scale. Wrapper for `_forward_once` method.
 
@@ -98,10 +102,11 @@ class BaseModel(nn.Module):
             (torch.Tensor): The output of the network.
         """
         if isinstance(x, dict):  # for cases of training and validating while training.
-            return self.loss(x, *args, **kwargs)
-        return self.predict(x, *args, **kwargs)
+            return self.loss(x,*args, **kwargs)
 
-    def predict(self, x, profile=False, visualize=False, augment=False, embed=None):
+        return self.predict(x, x_2=x_2, x_3=x_3,*args, **kwargs)
+
+    def predict(self, x, x_2=None,x_3=None, profile=False, visualize=False, augment=False, embed=None):
         """
         Perform a forward pass through the network.
 
@@ -117,9 +122,9 @@ class BaseModel(nn.Module):
         """
         if augment:
             return self._predict_augment(x)
-        return self._predict_once(x, profile, visualize, embed)
+        return self._predict_once(x, x_2 ,x_3,profile, visualize, embed)
 
-    def _predict_once(self, x, profile=False, visualize=False, embed=None):
+    def _predict_once(self, x ,x_2=None,x_3=None, profile=False, visualize=False, embed=None):
         """
         Perform a forward pass through the network.
 
@@ -136,10 +141,16 @@ class BaseModel(nn.Module):
         for m in self.model:
             if m.f != -1:  # if not from previous layer
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
-            if profile:
-                self._profile_one_layer(m, x, dt)
-            x = m(x)  # run
+            # if [profile]:
+                # self._profile_one_layer(m, x, dt)
+            
+            if isinstance(m, Triple_Conv):
+                x = m(x, x_2=x_2, x_3=x_3)
+            else:
+                x = m(x)
+                
             y.append(x if m.i in self.save else None)  # save output
+            # visualize=True
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
             if embed and m.i in embed:
@@ -278,8 +289,7 @@ class BaseModel(nn.Module):
         """
         if getattr(self, "criterion", None) is None:
             self.criterion = self.init_criterion()
-
-        preds = self.forward(batch["img"]) if preds is None else preds
+        preds = self.forward(batch["img"], x_2= batch["img2"], x_3=batch["img3"]) if preds is None else preds
         return self.criterion(preds, batch)
 
     def init_criterion(self):
@@ -294,11 +304,16 @@ class DetectionModel(BaseModel):
         """Initialize the YOLOv8 detection model with the given config and parameters."""
         super().__init__()
         self.yaml = cfg if isinstance(cfg, dict) else yaml_model_load(cfg)  # cfg dict
+        #print(self.yaml["backbone"][0][2])
+
+        
         if self.yaml["backbone"][0][2] == "Silence":
+           
             LOGGER.warning(
                 "WARNING ⚠️ YOLOv9 `Silence` module is deprecated in favor of nn.Identity. "
                 "Please delete local *.pt file and re-download the latest model checkpoint."
             )
+
             self.yaml["backbone"][0][2] = "nn.Identity"
 
         # Define model
@@ -317,13 +332,13 @@ class DetectionModel(BaseModel):
             s = 256  # 2x min stride
             m.inplace = self.inplace
 
-            def _forward(x):
+            def _forward(x,x_2,x_3):
                 """Performs a forward pass through the model, handling different Detect subclass types accordingly."""
                 if self.end2end:
-                    return self.forward(x)["one2many"]
-                return self.forward(x)[0] if isinstance(m, (Segment, Pose, OBB)) else self.forward(x)
+                    return self.forward(x,x_2,x_3)["one2many"]
+                return self.forward(x,x_2,x_3)[0] if isinstance(m, (Segment, Pose, OBB)) else self.forward(x,x_2,x_3)
 
-            m.stride = torch.tensor([s / x.shape[-2] for x in _forward(torch.zeros(1, ch, s, s))])  # forward
+            m.stride = torch.tensor([s / x.shape[-2] for x in _forward(torch.zeros(1, ch, s, s),torch.zeros(1, ch, s, s),torch.zeros(1, ch, s, s))])  # forward
             self.stride = m.stride
             m.bias_init()  # only run once
         else:
@@ -579,6 +594,7 @@ class RTDETRDetectionModel(DetectionModel):
                 self._profile_one_layer(m, x, dt)
             x = m(x)  # run
             y.append(x if m.i in self.save else None)  # save output
+            visualize = True
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
             if embed and m.i in embed:
@@ -939,6 +955,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             PSA,
             SCDown,
             C2fCIB,
+            Triple_Conv,
+            Conv_Depth,
+            Conv_RGB,
+            Conv_Thermo,
         }:
             c1, c2 = ch[f], args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)

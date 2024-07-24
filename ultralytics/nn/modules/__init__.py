@@ -68,6 +68,10 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
+    Triple_Conv,
+    Conv_Depth,
+    Conv_RGB,
+    Conv_Thermo,
 )
 from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -150,4 +154,8 @@ __all__ = (
     "Attention",
     "PSA",
     "SCDown",
+    "Triple_Conv",
+    "Conv_Depth",
+    "Conv_RGB",
+    "Conv_Thermo"
 )

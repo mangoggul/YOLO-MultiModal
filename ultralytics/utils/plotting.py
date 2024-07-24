@@ -1274,7 +1274,8 @@ def feature_visualization(x, module_type, stage, n=32, save_dir=Path("runs/detec
     if isinstance(x, torch.Tensor):
         _, channels, height, width = x.shape  # batch, channels, height, width
         if height > 1 and width > 1:
-            f = save_dir / f"stage{stage}_{module_type.split('.')[-1]}_features.png"  # filename
+            # f = save_dir + f"stage{stage}_{module_type.split('.')[-1]}_features.png"  # filename
+            f = f"visualize/" + f"stage{stage}_{module_type.split('.')[-1]}_features.png"  # filename
 
             blocks = torch.chunk(x[0].cpu(), channels, dim=0)  # select batch index 0, block by channels
             n = min(n, channels)  # number of plots
@@ -1282,10 +1283,10 @@ def feature_visualization(x, module_type, stage, n=32, save_dir=Path("runs/detec
             ax = ax.ravel()
             plt.subplots_adjust(wspace=0.05, hspace=0.05)
             for i in range(n):
-                ax[i].imshow(blocks[i].squeeze())  # cmap='gray'
+                ax[i].imshow(blocks[i].detach().squeeze())  # cmap='gray'
                 ax[i].axis("off")
 
             LOGGER.info(f"Saving {f}... ({n}/{channels})")
             plt.savefig(f, dpi=300, bbox_inches="tight")
             plt.close()
-            np.save(str(f.with_suffix(".npy")), x[0].cpu().numpy())  # npy save
+            # np.save(str(f.with_suffix(".npy")), x[0].cpu().numpy())  # npy save

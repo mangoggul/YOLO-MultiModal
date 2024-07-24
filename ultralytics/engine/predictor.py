@@ -112,7 +112,7 @@ class BasePredictor:
         self._lock = threading.Lock()  # for automatic thread-safe inference
         callbacks.add_integration_callbacks(self)
 
-    def preprocess(self, im):
+    def preprocess(self, im, im2, im3):
         """
         Prepares input image before inference.
 
@@ -125,21 +125,37 @@ class BasePredictor:
             im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
             im = np.ascontiguousarray(im)  # contiguous
             im = torch.from_numpy(im)
+            im2 = np.stack(self.pre_transform(im2))
+            im2 = im2[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+            im2 = np.ascontiguousarray(im2)  # contiguous
+            im2 = torch.from_numpy(im2)
+            im3 = np.stack(self.pre_transform(im3))
+            im3 = im3[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+            im3 = np.ascontiguousarray(im3)  # contiguous
+            im3 = torch.from_numpy(im3)
 
         im = im.to(self.device)
         im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32
         if not_tensor:
             im /= 255  # 0 - 255 to 0.0 - 1.0
-        return im
+        im2 = im2.to(self.device)
+        im2 = im2.half() if self.model.fp16 else im2.float()  # uint8 to fp16/32
+        if not_tensor:
+            im2 /= 255  # 0 - 255 to 0.0 - 1.0
+        im3 = im3.to(self.device)
+        im3 = im3.half() if self.model.fp16 else im3.float()  # uint8 to fp16/32
+        if not_tensor:
+            im3 /= 255  # 0 - 255 to 0.0 - 1.0
+        return im, im2, im3
 
-    def inference(self, im, *args, **kwargs):
+    def inference(self, im, im2 ,im3,*args, **kwargs):
         """Runs inference on a given image using the specified model and arguments."""
         visualize = (
             increment_path(self.save_dir / Path(self.batch[0][0]).stem, mkdir=True)
             if self.args.visualize and (not self.source_type.tensor)
             else False
         )
-        return self.model(im, augment=self.args.augment, visualize=visualize, embed=self.args.embed, *args, **kwargs)
+        return self.model(im,im2,im3, augment=self.args.augment, visualize=visualize, embed=self.args.embed, *args, **kwargs)
 
     def pre_transform(self, im):
         """
@@ -195,12 +211,29 @@ class BasePredictor:
             if self.args.task == "classify"
             else None
         )
+        # image_paths = [
+        #     "../Triple_YOLOv8/ultralytics/assets/bus.jpg",
+        #     "../Triple_YOLOv8/ultralytics/assets/zidane.jpg",
+        #     "../Triple_YOLOv8/ultralytics/assets/bus copy.jpg",
+        # ]
+
         self.dataset = load_inference_source(
             source=source,
             batch=self.args.batch,
             vid_stride=self.args.vid_stride,
             buffer=self.args.stream_buffer,
         )
+
+        #multi modal 로 코드 변경시 data/build.py 파일에서 오류 발생
+        #이는 initialize 과정에서 이미지 3장이 필요한데 yolo에서 자체 이미지 1장만으로 initialize
+        #따라서 image_paths 배열을 만들고 임의로 bus, bus copy, zidane 이미지로 initialize
+        #학습에는 다른 dataset 이 사용되므로 initialize 과정에 사용되는 이미지는 무관
+        # self.dataset = load_inference_source( 
+        #     source=source,
+        #     batch=self.args.batch,
+        #     vid_stride=self.args.vid_stride,
+        #     buffer=self.args.stream_buffer,
+        # )
         self.source_type = self.dataset.source_type
         if not getattr(self, "stream", True) and (
             self.source_type.stream
@@ -243,15 +276,17 @@ class BasePredictor:
             self.run_callbacks("on_predict_start")
             for self.batch in self.dataset:
                 self.run_callbacks("on_predict_batch_start")
-                paths, im0s, s = self.batch
+                #paths, im0s, s = self.batch 변경 전
+                paths, im0s, im1s, im2s, s = self.batch
 
                 # Preprocess
                 with profilers[0]:
-                    im = self.preprocess(im0s)
+                    #im,im2,im3 = self.preprocess(im0s, im0s, im0s) 변경 전
+                    im,im2,im3 = self.preprocess(im0s, im1s, im2s)
 
                 # Inference
                 with profilers[1]:
-                    preds = self.inference(im, *args, **kwargs)
+                    preds = self.inference(im, im2, im3,*args, **kwargs)
                     if self.args.embed:
                         yield from [preds] if isinstance(preds, torch.Tensor) else preds  # yield embedding tensors
                         continue

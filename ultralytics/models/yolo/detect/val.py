@@ -45,7 +45,11 @@ class DetectionValidator(BaseValidator):
     def preprocess(self, batch):
         """Preprocesses batch of images for YOLO training."""
         batch["img"] = batch["img"].to(self.device, non_blocking=True)
+        batch["img2"] = batch["img2"].to(self.device, non_blocking=True)
+        batch["img3"] = batch["img3"].to(self.device, non_blocking=True)
         batch["img"] = (batch["img"].half() if self.args.half else batch["img"].float()) / 255
+        batch["img2"] = (batch["img2"].half() if self.args.half else batch["img2"].float()) / 255
+        batch["img3"] = (batch["img3"].half() if self.args.half else batch["img3"].float()) / 255
         for k in ["batch_idx", "cls", "bboxes"]:
             batch[k] = batch[k].to(self.device)
 
@@ -241,6 +245,26 @@ class DetectionValidator(BaseValidator):
             names=self.names,
             on_plot=self.on_plot,
         )
+        plot_images(
+            batch["img2"],
+            batch["batch_idx"],
+            batch["cls"].squeeze(-1),
+            batch["bboxes"],
+            paths=batch["im_file"],
+            fname=self.save_dir / f"val_batch{ni}_labels2.jpg",
+            names=self.names,
+            on_plot=self.on_plot,
+        )
+        plot_images(
+            batch["img3"],
+            batch["batch_idx"],
+            batch["cls"].squeeze(-1),
+            batch["bboxes"],
+            paths=batch["im_file"],
+            fname=self.save_dir / f"val_batch{ni}_labels3.jpg",
+            names=self.names,
+            on_plot=self.on_plot,
+        )
 
     def plot_predictions(self, batch, preds, ni):
         """Plots predicted bounding boxes on input images and saves the result."""
@@ -252,6 +276,23 @@ class DetectionValidator(BaseValidator):
             names=self.names,
             on_plot=self.on_plot,
         )  # pred
+        plot_images(
+            batch["img2"],
+            *output_to_target(preds, max_det=self.args.max_det),
+            paths=batch["im_file"],
+            fname=self.save_dir / f"val_batch{ni}_pred2.jpg",
+            names=self.names,
+            on_plot=self.on_plot,
+        )  # pred
+        plot_images(
+            batch["img3"],
+            *output_to_target(preds, max_det=self.args.max_det),
+            paths=batch["im_file"],
+            fname=self.save_dir / f"val_batch{ni}_pred3.jpg",
+            names=self.names,
+            on_plot=self.on_plot,
+        )  # pred
+
 
     def save_one_txt(self, predn, save_conf, shape, file):
         """Save YOLO detections to a txt file in normalized coordinates in a specific format."""
