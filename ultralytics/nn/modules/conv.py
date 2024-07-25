@@ -25,6 +25,7 @@ __all__ = (
     "Conv_Depth",
     "Conv_RGB"
     "Conv_Thermo"
+    "Conv_Main"
 )
 
 
@@ -91,6 +92,7 @@ class Conv_RGB(nn.Module):
 
     def forward(self, x):
         """Apply convolution, batch normalization and activation to input tensor."""
+        print(x, '여기 이게 rgb x 에용!!')
         return self.act(self.bn(self.conv(x[0])))
 
     def forward_fuse(self, x):
@@ -139,18 +141,112 @@ class Triple_Conv(nn.Module):
         self.bn3 = nn.BatchNorm2d(c2)
         self.act3 = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
 
-    def forward(self, x, x_2,x_3):
+    def forward(self,x,x_2,x_3):
         """Apply convolution, batch normalization and activation to input tensor."""
 
         x1 = self.act(self.bn(self.conv(x)))
         x2 = self.act2(self.bn2(self.conv2(x_2)))
         x3 = self.act2(self.bn3(self.conv2(x_3)))
-        return (x1, x2,x3)
+        return (x1,x2,x3)
 
     def forward_fuse(self, x):
         """Perform transposed convolution of 2D data."""
         return self.act(self.conv(x))
+
+
+
+
+# def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+#         """Initialize Conv layer with given arguments including activation."""
+#         super().__init__()
+#         self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+#         self.bn = nn.BatchNorm2d(c2)
+#         self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+#     def forward(self, x):
+#         """Apply convolution, batch normalization and activation to input tensor."""
+#         return self.act(self.bn(self.conv(x[0])))
+
+#     def forward_fuse(self, x):
+#         """Perform transposed convolution of 2D data."""
+#         return self.act(self.conv(x))
+
+class Conv_Main(nn.Module):
+    """Standard convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)."""
+
+    default_act = nn.SiLU()  # default activation
+
+    # def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+    #     """Initialize Conv layer with given arguments including activation."""
+    #     super().__init__()
+    #     self.conv1 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+    #     self.conv2 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+    #     self.conv3 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        
+    #     # Combine the outputs and reduce channel dimension to 32
+    #     self.combine_conv = nn.Conv2d(c2*3, c2, 1, 1, 0, bias=False)  # 1x1 conv to reduce channels from 96 to 32
+    #     self.bn = nn.BatchNorm2d(c2)
+    #     self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+    # def forward(self, inputs):
+    #     """Apply convolution, batch normalization and activation to input tensor."""
+        
+    #     x1, x2, x3 = inputs
+        
+    #     # Process each input tensor independently
+    #     out1 = self.conv1(x1)
+    #     out2 = self.conv2(x2)
+    #     out3 = self.conv3(x3)
+        
+    #     # Concatenation along the channel dimension
+    #     combined = torch.cat((out1, out2, out3), dim=1)
+       
+    #     # Apply a 1x1 convolution to reduce the channel dimension to 32
+    #     reduced = self.combine_conv(combined)
+        
+    #     # Apply batch normalization and activation
+    #     bn_combined = self.bn(reduced)
+    #     output = self.act(bn_combined)
+    #     return output
     
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+        """Initialize Conv layer with given arguments including activation."""
+        super().__init__()
+        self.conv1 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.conv2 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.conv3 = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(3 * c2)  # 3 * c2 to match concatenated tensor's channel size
+        print(self.bn)
+        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+    def forward(self, inputs):
+        """Apply convolution, batch normalization and activation to input tensor."""
+        
+        x1, x2, x3 = inputs
+        print(inputs, "이게")
+        print(x1.shape)
+        print(x2.shape)
+        print(x3.shape)
+        
+        # Process each input tensor independently
+        out1 = self.conv1(x1)
+        out2 = self.conv2(x2)
+        out3 = self.conv3(x3)
+        
+        # Concatenation along the channel dimension
+        combined = torch.cat((out1, out2, out3), dim=1)
+        print(combined, "@@@@@@@@@@@@@@@@@@@@@@@@")
+        print(combined.shape, '!_!_!_!_!_!')
+        
+        # Apply batch normalization and activation
+        bn_combined = self.bn(combined)
+        output = self.act(bn_combined)
+        return output
+    
+    def forward_fuse(self, x):
+        """Perform transposed convolution of 2D data."""
+        return self.act(self.conv1(x))
+        
 
 
 class Conv2(Conv):

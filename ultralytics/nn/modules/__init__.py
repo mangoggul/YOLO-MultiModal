@@ -72,6 +72,7 @@ from .conv import (
     Conv_Depth,
     Conv_RGB,
     Conv_Thermo,
+    Conv_Main,
 )
 from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -157,5 +158,6 @@ __all__ = (
     "Triple_Conv",
     "Conv_Depth",
     "Conv_RGB",
-    "Conv_Thermo"
+    "Conv_Thermo",
+    "Conv_Main",
 )
