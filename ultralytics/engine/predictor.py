@@ -211,12 +211,10 @@ class BasePredictor:
             if self.args.task == "classify"
             else None
         )
-        # image_paths = [
-        #     "../Triple_YOLOv8/ultralytics/assets/bus.jpg",
-        #     "../Triple_YOLOv8/ultralytics/assets/zidane.jpg",
-        #     "../Triple_YOLOv8/ultralytics/assets/bus copy.jpg",
-        # ]
-
+        
+        if len(source) < 3:
+            source = (source * 3)
+            
         self.dataset = load_inference_source(
             source=source,
             batch=self.args.batch,
@@ -224,16 +222,7 @@ class BasePredictor:
             buffer=self.args.stream_buffer,
         )
 
-        #multi modal 로 코드 변경시 data/build.py 파일에서 오류 발생
-        #이는 initialize 과정에서 이미지 3장이 필요한데 yolo에서 자체 이미지 1장만으로 initialize
-        #따라서 image_paths 배열을 만들고 임의로 bus, bus copy, zidane 이미지로 initialize
-        #학습에는 다른 dataset 이 사용되므로 initialize 과정에 사용되는 이미지는 무관
-        # self.dataset = load_inference_source( 
-        #     source=source,
-        #     batch=self.args.batch,
-        #     vid_stride=self.args.vid_stride,
-        #     buffer=self.args.stream_buffer,
-        # )
+       
         self.source_type = self.dataset.source_type
         if not getattr(self, "stream", True) and (
             self.source_type.stream
@@ -254,7 +243,7 @@ class BasePredictor:
         if not self.model:
             self.setup_model(model)
 
-        with self._lock:  # for thread-safe inference
+        with self._lock:  # for thread-safe in`ference
             # Setup source every time predict is called
             self.setup_source(source if source is not None else self.args.source)
 
