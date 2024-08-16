@@ -7,7 +7,11 @@ import time
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["PYTORCH_USE_CUDA_DSA"] = "1"
 
-
+#api_url = "https://notify-api.line.me/api/notify" 
+#token = "LYy0yPmrqjMc3rmvdQR2WcbCCVZkmFlf6FZBZGEkpYQ"
+#headers = {'Authorization':'Bearer '+token} 
+#line api로 training 완료 시에 알림 갈 수 있는 부분
+#단순 training을 위해 val_metrics, test_metrics, time과 api, token, header 부분 전부 주석처리 혹은 삭제
 
 def seed_everything(seed):
     torch.manual_seed(seed) #torch를 거치는 모든 난수들 의 생성순서를 고정한다
@@ -29,14 +33,21 @@ def convert_seconds(seconds):
 
 if __name__ == '__main__':
 
-  def start_model(model_name,model_num,ex_name):
+  def start_model(model_name, model_num, ex_name):
     model = YOLO(f"yolov{model_num}{model_name}.yaml")
     
-    model_save_dir = f"EX/{ex_name}"
+    model_save_dir = f"EX/{ex_name}/train"
     model_save_name = f"yolov{model_num}{model_name}SOS"
     
-    model.train(data="yaml/new_data.yaml", epochs=1000,patience=20, imgsz=640,device=0, project=model_save_dir+"/train",name=model_save_name, augment=False)  
+    # wandb project name should be simple without any path
+    wandb_project_name = f"{ex_name}_{model_save_name}"
     
+    model.train(data="yaml/new_data.yaml", epochs=1000, patience=20, imgsz=640, device=0, 
+                project=wandb_project_name, name=model_save_name, augment=False, val=True)
+    
+    # Move files to the desired folder
+    for file in os.listdir(wandb_project_name):
+        os.rename(os.path.join(wandb_project_name, file), os.path.join(model_save_dir, file))
     
     
   model_list = ['n']
@@ -44,9 +55,9 @@ if __name__ == '__main__':
   model_num = ['8'] 
   ex_name = ["new_data"]
   
-  for ex in ex_name:
-    for num in model_num:
+  for ex in ex_name: # new_data
+    for num in model_num: # 8
       if num == '9':
         model_list = model_9_list
       for model_name in model_list:
-        start_model(model_name,num,ex)
+        start_model(model_name,num,ex) #new_data

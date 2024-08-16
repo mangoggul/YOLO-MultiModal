@@ -211,7 +211,7 @@ class BasePredictor:
             if self.args.task == "classify"
             else None
         )
-        
+        #source 가 3보다 적은 경우 source 를 3개로 복제함으로써 initialize 과정 수행
         if len(source) < 3:
             source = (source * 3)
             

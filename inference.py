@@ -3,26 +3,54 @@ import time
 from ultralytics import YOLO
 
 # YOLOv8 모델 로드
-model = YOLO('EX/new_data/train/yolov8n34/weights/best.pt')
+model = YOLO('new_data_yolov8nSOS/yolov8nSOS3/weights/best.pt')
 
 image_paths = [ #임의의 연속적인 image 4장을 준비
     "dataset/new_data/test/RGB/000045.jpg",
     "dataset/new_data/test/RGB/000046.jpg",
     "dataset/new_data/test/RGB/000047.jpg",
-    "dataset/new_data/test/RGB/000048.jpg"
+    "dataset/new_data/test/RGB/000048.jpg",
+    "dataset/new_data/test/RGB/000052.jpg",
+    "dataset/new_data/test/RGB/000053.jpg",
+    "dataset/new_data/test/RGB/000054.jpg",
+    "dataset/new_data/test/RGB/000055.jpg",
+    "dataset/new_data/test/RGB/000056.jpg",
+    "dataset/new_data/test/RGB/000057.jpg",
+    "dataset/new_data/test/RGB/000058.jpg",
+    "dataset/new_data/test/RGB/000059.jpg",
+    "dataset/new_data/test/RGB/000060.jpg"
 ]
 depth_image_paths = [
-     "dataset/new_data/test/D/000045.jpg",
+    "dataset/new_data/test/D/000045.jpg",
     "dataset/new_data/test/D/000046.jpg",
     "dataset/new_data/test/D/000047.jpg",
-    "dataset/new_data/test/D/000048.jpg"
+    "dataset/new_data/test/D/000048.jpg",
+    "dataset/new_data/test/D/000052.jpg",
+    "dataset/new_data/test/D/000053.jpg",
+    "dataset/new_data/test/D/000054.jpg",
+    "dataset/new_data/test/D/000055.jpg",
+    "dataset/new_data/test/D/000056.jpg",
+    "dataset/new_data/test/D/000057.jpg",
+    "dataset/new_data/test/D/000058.jpg",
+    "dataset/new_data/test/D/000059.jpg",
+    "dataset/new_data/test/D/000060.jpg"
 ]
 thermo_image_paths = [
     "dataset/new_data/test/Thermo/000045.jpg",
     "dataset/new_data/test/Thermo/000046.jpg",
     "dataset/new_data/test/Thermo/000047.jpg",
-    "dataset/new_data/test/Thermo/000048.jpg"
+    "dataset/new_data/test/Thermo/000048.jpg",
+    "dataset/new_data/test/Thermo/000052.jpg",
+    "dataset/new_data/test/Thermo/000053.jpg",
+    "dataset/new_data/test/Thermo/000054.jpg",
+    "dataset/new_data/test/Thermo/000055.jpg",
+    "dataset/new_data/test/Thermo/000056.jpg",
+    "dataset/new_data/test/Thermo/000057.jpg",
+    "dataset/new_data/test/Thermo/000058.jpg",
+    "dataset/new_data/test/Thermo/000059.jpg",
+    "dataset/new_data/test/Thermo/000060.jpg"
 ]
+
 total_inference_time = 0 
 num_images = len(image_paths)
 

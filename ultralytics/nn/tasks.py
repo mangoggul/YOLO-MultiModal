@@ -59,7 +59,7 @@ from ultralytics.nn.modules import (
     Conv_Depth,
     Conv_RGB,
     Conv_Thermo,
-    Conv_Main,
+    Conv_Main
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -151,7 +151,7 @@ class BaseModel(nn.Module):
                 x = m(x)
                 
             y.append(x if m.i in self.save else None)  # save output
-            # visualize=True
+            #visualize=True
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
             if embed and m.i in embed:
@@ -595,7 +595,7 @@ class RTDETRDetectionModel(DetectionModel):
                 self._profile_one_layer(m, x, dt)
             x = m(x)  # run
             y.append(x if m.i in self.save else None)  # save output
-            visualize = True
+            #visualize = True
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
             if embed and m.i in embed:
