@@ -1,3 +1,6 @@
+
+# Most of the YOLO standard code changes were made by this person.
+
 # Multi-Modal-YOLO detection
 ![image](https://github.com/user-attachments/assets/a6de1f4d-8e88-4a31-8638-618beced7848)
 
