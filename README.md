@@ -78,7 +78,7 @@ def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
 
     
 ```
-git clone https://github.com/mangoggul/multi-modal-classification.git
+git clone https://github.com/mangoggul/YOLO-MultiModal.git
 ```
 
 ### 2. You need to download Dataset / Dataset is organized as follows
