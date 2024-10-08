@@ -3,7 +3,7 @@
 # Multi-Modal-YOLO detection
 ![image](https://github.com/user-attachments/assets/a6de1f4d-8e88-4a31-8638-618beced7848)
 
-## Most of the YOLO standard code changes were made by this person : [mcw1217](https://github.com/mcw1217)
+## This code modifications were made with him : [mcw1217](https://github.com/mcw1217)
 
 
 ## Flow
